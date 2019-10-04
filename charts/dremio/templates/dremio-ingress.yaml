@@ -1,0 +1,26 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  name: dremio-web-ingress
+  namespace: default
+spec:
+  rules:
+  - host: hostname
+    http:
+      paths:
+      - backend:
+          serviceName: dremio-client
+          servicePort: 9047
+        path: /
+  tls:
+  - hosts:
+    - hostname
+    secretName: dremio-tls
+status:
+  loadBalancer:
+    ingress:
+    - ip: ip1
+    - ip: ip2

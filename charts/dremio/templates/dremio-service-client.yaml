@@ -22,6 +22,8 @@ spec:
   - port: {{ .Values.coordinator.web.port | default 9047 }}
     targetPort: 9047
     name: web
+  - port: 47470
+    name: flight
   selector:
     app: dremio-coordinator
   type: {{ .Values.serviceType | default "NodePort" }}

@@ -13,7 +13,7 @@ spec:
   containers:
   - name: dremio-admin
     image: {{.Values.image}}:{{.Values.imageTag}}
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     stdin: true
     tty: true
     resources:

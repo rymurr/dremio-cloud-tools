@@ -29,7 +29,7 @@ spec:
       containers:
       - name: dremio-executor
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         resources:
           requests:
             memory: {{.Values.executor.memory}}M
@@ -40,6 +40,10 @@ spec:
         - name: dremio-config
           mountPath: /opt/dremio/conf
         env:
+        - name: DREMIO_FLIGHT_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: DREMIO_MAX_HEAP_MEMORY_SIZE_MB
           value: "{{ template "HeapMemory" .Values.executor.memory }}"
         - name: DREMIO_MAX_DIRECT_MEMORY_SIZE_MB
@@ -57,6 +61,8 @@ spec:
         ports:
         - containerPort: 45678
           name: server
+        - containerPort: 47471
+          name: flight
       initContainers:
       - name: wait-for-zk
         image: busybox
@@ -65,7 +71,7 @@ spec:
       # dremio uid/gid
       - name: chown-data-directory
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           runAsUser: 0
         volumeMounts:

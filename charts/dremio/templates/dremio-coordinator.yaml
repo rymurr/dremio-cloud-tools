@@ -29,7 +29,7 @@ spec:
       containers:
       - name: dremio-coordinator
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         resources:
           requests:
             memory: {{.Values.coordinator.memory}}M
@@ -64,6 +64,8 @@ spec:
           name: client
         - containerPort: 45678
           name: server
+        - containerPort: 8181
+          name: prom-coord
       initContainers:
       - name: wait-for-zk
         image: busybox
@@ -71,7 +73,7 @@ spec:
       {{- if .Values.tls.ui.enabled }}
       - name: generate-ui-keystore
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         volumeMounts:
         - name: dremio-tls
           mountPath: /opt/dremio/tls
@@ -93,7 +95,7 @@ spec:
       {{- if .Values.tls.client.enabled }}
       - name: generate-client-keystore
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         volumeMounts:
         - name: dremio-tls
           mountPath: /opt/dremio/tls

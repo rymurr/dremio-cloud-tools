@@ -1,0 +1,18 @@
+{{ if not .Values.DremioAdmin }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: dremio-executor
+  labels:
+    app: dremio-executor
+spec:
+  ports:
+  - port: 47471
+    name: flight
+  selector:
+    app: dremio-executor
+  type: {{ .Values.serviceType | default "NodePort" }}
+  {{- if .Values.sessionAffinity }}
+  sessionAffinity: {{ .Values.sessionAffinity }}
+  {{- end }}
+{{ end }}

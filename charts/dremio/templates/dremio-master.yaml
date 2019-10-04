@@ -37,12 +37,14 @@ spec:
       containers:
       - name: dremio-master-coordinator
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         resources:
           requests:
             memory: {{.Values.coordinator.memory}}M
             cpu: {{.Values.coordinator.cpu}}
         volumeMounts:
+        - name: varlog
+          mountPath: /opt/dremio/log
         - name: dremio-master-volume
           mountPath: /opt/dremio/data
         - name: dremio-config
@@ -52,6 +54,14 @@ spec:
           mountPath: /opt/dremio/tls
         {{- end }}
         env:
+        - name: DREMIO_FLIGHT_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: DREMIO_LOG_TO_CONSOLE
+          value: "0"
+        - name: DREMIO_LOG_DIR
+          value: /opt/dremio/log
         - name: DREMIO_MAX_HEAP_MEMORY_SIZE_MB
           value: "{{ template "HeapMemory" .Values.coordinator.memory }}"
         - name: DREMIO_MAX_DIRECT_MEMORY_SIZE_MB
@@ -74,6 +84,8 @@ spec:
           name: client
         - containerPort: 45678
           name: server
+        - containerPort: 47470
+          name: flight
         readinessProbe:
           httpGet:
             path: /
@@ -83,6 +95,38 @@ spec:
             port: 9047
           initialDelaySeconds: 5
           periodSeconds: 5
+      - name: json-logs
+        image: busybox
+        args: ["sh", "-c", "sh /home/user/log-to-console.sh /var/log/json/server.json"]
+        volumeMounts:
+          - name: log-script
+            mountPath: /home/user
+          - name: varlog
+            mountPath: /var/log
+      - name: query-logs
+        image: busybox
+        args: ["sh", "-c", "sh /home/user/log-to-console.sh /var/log/queries.json"]
+        volumeMounts:
+          - name: log-script
+            mountPath: /home/user
+          - name: varlog
+            mountPath: /var/log
+      - name: metadata-logs
+        image: busybox
+        args: ["sh", "-c", "sh /home/user/log-to-console.sh /var/log/metadata_refresh.log"]
+        volumeMounts:
+          - name: log-script
+            mountPath: /home/user
+          - name: varlog
+            mountPath: /var/log
+      - name: access-logs
+        image: busybox
+        args: ["sh", "-c", "sh /home/user/log-to-console.sh /var/log/access.log"]
+        volumeMounts:
+          - name: log-script
+            mountPath: /home/user
+          - name: varlog
+            mountPath: /var/log
       initContainers:
       - name: start-only-one-master
         image: busybox
@@ -93,7 +137,7 @@ spec:
       # since we're mounting a separate volume, reset permission to dremio uid/gid
       - name: chown-data-directory
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         securityContext:
           runAsUser: 0
         volumeMounts:
@@ -105,7 +149,7 @@ spec:
         - "/opt/dremio/data"
       - name: upgrade-task
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         volumeMounts:
         - name: dremio-master-volume
           mountPath: /opt/dremio/data
@@ -115,7 +159,7 @@ spec:
       {{- if .Values.tls.ui.enabled }}
       - name: generate-ui-keystore
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         volumeMounts:
         - name: dremio-tls
           mountPath: /opt/dremio/tls
@@ -137,7 +181,7 @@ spec:
       {{- if .Values.tls.client.enabled }}
       - name: generate-client-keystore
         image: {{.Values.image}}:{{.Values.imageTag}}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         volumeMounts:
         - name: dremio-tls
           mountPath: /opt/dremio/tls
@@ -157,6 +201,11 @@ spec:
         - "pass:"
       {{- end }}
       volumes:
+      - name: varlog
+        emptyDir: {}
+      - name: log-script
+        configMap:
+          name: log-script
       - name: dremio-config
         configMap:
           name: dremio-config
